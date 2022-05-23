@@ -54,6 +54,17 @@ export class PancakeswapRouterContractFactory {
     return await this._pancakeswapRouterContract.factory();
   }
 
+  public async getAmountsIn(
+    amountIn: BigNumberish,
+    path: string[]
+  ): Promise<string[]> {
+    const amounts = await this._pancakeswapRouterContract.getAmountsIn(
+      amountIn,
+      path
+    );
+    return amounts.map((c) => c.toHexString());
+  }
+
   public async getAmountsOut(
     amountIn: BigNumberish,
     path: string[]
