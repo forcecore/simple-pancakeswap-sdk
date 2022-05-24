@@ -28,12 +28,12 @@ const routeTest = async () => {
   const pancakeSwapPairFactory = await pancakeSwapPair.createFactory();
 
   try {
-    const trade = await pancakeSwapPairFactory.trade('10');
+    const trade = await pancakeSwapPairFactory.trade('10', 'getAmountsOut');
     console.log(trade);
 
     console.log(new Date().getTime());
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
   }
 
   process.stdin.resume();

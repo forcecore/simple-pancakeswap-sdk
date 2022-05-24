@@ -17,7 +17,7 @@ import { formatEther } from '../../common/utils/format-ether';
 import { hexlify } from '../../common/utils/hexlify';
 import { onlyUnique } from '../../common/utils/only-unique';
 import { parseEther } from '../../common/utils/parse-ether';
-import { getTradePath } from '../../common/utils/trade-path';
+import { getTradePath, isErc20Token } from '../../common/utils/trade-path';
 import { ChainId } from '../../enums/chain-id';
 import { TradePath } from '../../enums/trade-path';
 import { EthersProvider } from '../../ethers-provider';
@@ -30,6 +30,7 @@ import { TokenRoutes } from './models/token-routes';
 export class PancakeswapRouterFactory {
   private _multicall = new Multicall({
     ethersProvider: this._ethersProvider.provider,
+    tryAggregate: true
   });
 
   constructor(
@@ -148,9 +149,19 @@ export class PancakeswapRouterFactory {
   }
 
   public async getAllPossibleRoutesWithQuotes(
-    amountToTrade: BigNumber
+    amountToTrade: BigNumber,
+    contractMethodName: string // getAmountsOut or getAmountsIn
   ): Promise<RouteQuote[]> {
-    const tradeAmount = this.formatAmountToTrade(amountToTrade);
+
+    if (!(contractMethodName == 'getAmountsIn' || contractMethodName == 'getAmountsOut')) {
+      throw new PancakeswapError(
+        'contractMethodName must be getAmountsIn or getAmountsOut',
+        ErrorCodes.noRoutesFound
+      );
+    }
+
+    const ioToken = contractMethodName == 'getAmountsIn' ? this._toToken : this._fromToken;
+    const tradeAmount = this.formatAmountToTrade(amountToTrade, ioToken);
 
     const routes = await this.getAllPossibleRoutes();
 
@@ -167,7 +178,7 @@ export class PancakeswapRouterFactory {
 
       contractCallContext.calls.push({
         reference: `route${i}`,
-        methodName: 'getAmountsOut',
+        methodName: contractMethodName, // John: this is the core part
         methodParameters: [
           tradeAmount,
           routeCombo.map((c) => {
@@ -189,9 +200,10 @@ export class PancakeswapRouterFactory {
    * @param amountToTrade The amount they want to trade
    */
   public async findBestRoute(
-    amountToTrade: BigNumber
+    amountToTrade: BigNumber,
+    contractMethodName: string // getAmountsOut or getAmountsIn
   ): Promise<BestRouteQuotes> {
-    const allRoutes = await this.getAllPossibleRoutesWithQuotes(amountToTrade);
+    const allRoutes = await this.getAllPossibleRoutesWithQuotes(amountToTrade, contractMethodName);
     if (allRoutes.length === 0) {
       throw new PancakeswapError(
         `No routes found for ${this._fromToken.contractAddress} > ${this._toToken.contractAddress}`,
@@ -203,6 +215,7 @@ export class PancakeswapRouterFactory {
       bestRouteQuote: allRoutes[0],
       triedRoutesQuote: allRoutes.map((route) => {
         return {
+          expectedInputQuote: route.expectedInputQuote,
           expectedConvertQuote: route.expectedConvertQuote,
           routePathArrayTokenMap: route.routePathArrayTokenMap,
           routeText: route.routeText,
@@ -386,6 +399,9 @@ export class PancakeswapRouterFactory {
         const callReturnContext =
           contractCallReturnContext.callsReturnContext[i];
 
+        if (callReturnContext.returnValues.length == 0)
+          continue;
+
         switch (tradePath) {
           case TradePath.ethToErc20:
             result.push(this.buildRouteQuoteForEthToErc20(callReturnContext));
@@ -430,7 +446,42 @@ export class PancakeswapRouterFactory {
   private buildRouteQuoteForErc20ToErc20(
     callReturnContext: CallReturnContext
   ): RouteQuote {
-    return this.buildRouteQuoteForEthToErc20(callReturnContext);
+    const convertQuoteUnformatted = new BigNumber(
+      callReturnContext.returnValues[
+        callReturnContext.returnValues.length - 1
+      ].hex
+    );
+    const convertBaseUnformatted = new BigNumber(
+      callReturnContext.returnValues[0].hex
+    );
+
+    // John:
+    // callReturnContext.returnValues: [
+    //   { type: 'BigNumber', hex: '0x017cfce81d8708bdfc' },
+    //   { type: 'BigNumber', hex: '0x012a3a603aa7d9a6' },
+    //   { type: 'BigNumber', hex: '0x017b1585a52f5033a9' },
+    //   { type: 'BigNumber', hex: '0x8ac7230489e80000' }
+    // ],
+    return {
+      expectedInputQuote: convertBaseUnformatted
+        .shiftedBy(this._fromToken.decimals * -1)
+        .toFixed(this._fromToken.decimals),
+      expectedConvertQuote: convertQuoteUnformatted
+        .shiftedBy(this._toToken.decimals * -1)
+        .toFixed(this._toToken.decimals),
+      routePathArrayTokenMap: callReturnContext.methodParameters[1].map(
+        (c: string) => {
+          return this.allTokens.find((t) => t.contractAddress === c);
+        }
+      ),
+      routeText: callReturnContext.methodParameters[1]
+        .map((c: string) => {
+          return this.allTokens.find((t) => t.contractAddress === c)!.symbol;
+        })
+        .join(' > '),
+      // route array is always in the 1 index of the method parameters
+      routePathArray: callReturnContext.methodParameters[1],
+    };
   }
 
   /**
@@ -445,7 +496,13 @@ export class PancakeswapRouterFactory {
         callReturnContext.returnValues.length - 1
       ].hex
     );
+    const convertBaseUnformatted = new BigNumber(
+      callReturnContext.returnValues[0].hex
+    );
     return {
+      expectedInputQuote: new BigNumber(
+        formatEther(convertBaseUnformatted)
+      ).toFixed(this._fromToken.decimals),
       expectedConvertQuote: convertQuoteUnformatted
         .shiftedBy(this._toToken.decimals * -1)
         .toFixed(this._toToken.decimals),
@@ -476,7 +533,13 @@ export class PancakeswapRouterFactory {
         callReturnContext.returnValues.length - 1
       ].hex
     );
+    const convertBaseUnformatted = new BigNumber(
+      callReturnContext.returnValues[0].hex
+    );
     return {
+      expectedInputQuote: convertBaseUnformatted
+        .shiftedBy(this._fromToken.decimals * -1)
+        .toFixed(this._fromToken.decimals),
       expectedConvertQuote: new BigNumber(
         formatEther(convertQuoteUnformatted)
       ).toFixed(this._toToken.decimals),
@@ -500,20 +563,15 @@ export class PancakeswapRouterFactory {
    * @param amountToTrade The amount to trade
    * @param pancakeswapFactoryContext The pancakeswap factory context
    */
-  private formatAmountToTrade(amountToTrade: BigNumber): string {
-    switch (this.tradePath()) {
-      case TradePath.ethToErc20:
-        const amountToTradeWei = parseEther(amountToTrade);
-        return hexlify(amountToTradeWei);
-      case TradePath.erc20ToEth:
-      case TradePath.erc20ToErc20:
-        return hexlify(amountToTrade.shiftedBy(this._fromToken.decimals));
-      default:
-        throw new PancakeswapError(
-          `Internal trade path ${this.tradePath()} is not supported`,
-          ErrorCodes.tradePathIsNotSupported
-        );
+  private formatAmountToTrade(
+    amountToTrade: BigNumber,
+    token: Token
+  ): string {
+    if (isErc20Token(token)) {
+      return hexlify(amountToTrade.shiftedBy(token.decimals));
     }
+    const amountToTradeWei = parseEther(amountToTrade);
+    return hexlify(amountToTradeWei);
   }
 
   /**

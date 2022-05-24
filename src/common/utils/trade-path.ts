@@ -13,3 +13,7 @@ export function getTradePath(fromToken: Token, toToken: Token): TradePath {
 
   return TradePath.erc20ToErc20;
 }
+
+export function isErc20Token(token: Token): boolean {
+  return token.contractAddress !== BNB.token().contractAddress;
+}

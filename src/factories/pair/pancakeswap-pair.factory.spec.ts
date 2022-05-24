@@ -40,14 +40,14 @@ describe('PancakeswapPairFactory', () => {
 
     describe('trade', () => {
       it('should return trade info', async () => {
-        const result = await pancakeswapPairFactory.trade('1');
+        const result = await pancakeswapPairFactory.trade('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
 
     describe('findBestRoute', () => {
       it('should return the best route', async () => {
-        const result = await pancakeswapPairFactory.findBestRoute('1');
+        const result = await pancakeswapPairFactory.findBestRoute('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
@@ -55,7 +55,7 @@ describe('PancakeswapPairFactory', () => {
     describe('findAllPossibleRoutesWithQuote', () => {
       it('should return all possible routes with quotes', async () => {
         const result = await pancakeswapPairFactory.findAllPossibleRoutesWithQuote(
-          '1'
+          '1', 'getAmountsOut'
         );
         expect(result).not.toBeUndefined();
       });
@@ -159,14 +159,14 @@ describe('PancakeswapPairFactory', () => {
 
     describe('trade', () => {
       it('should return trade info', async () => {
-        const result = await pancakeswapPairFactory.trade('1');
+        const result = await pancakeswapPairFactory.trade('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
 
     describe('findBestRoute', () => {
       it('should return the best route', async () => {
-        const result = await pancakeswapPairFactory.findBestRoute('1');
+        const result = await pancakeswapPairFactory.findBestRoute('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
@@ -174,7 +174,7 @@ describe('PancakeswapPairFactory', () => {
     describe('findAllPossibleRoutesWithQuote', () => {
       it('should return all possible routes with quotes', async () => {
         const result = await pancakeswapPairFactory.findAllPossibleRoutesWithQuote(
-          '1'
+          '1', 'getAmountsOut'
         );
         expect(result).not.toBeUndefined();
       });
@@ -278,14 +278,14 @@ describe('PancakeswapPairFactory', () => {
 
     describe('trade', () => {
       it('should return trade info', async () => {
-        const result = await pancakeswapPairFactory.trade('1');
+        const result = await pancakeswapPairFactory.trade('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
 
     describe('findBestRoute', () => {
       it('should return the best route', async () => {
-        const result = await pancakeswapPairFactory.findBestRoute('1');
+        const result = await pancakeswapPairFactory.findBestRoute('1', 'getAmountsOut');
         expect(result).not.toBeUndefined();
       });
     });
@@ -293,7 +293,7 @@ describe('PancakeswapPairFactory', () => {
     describe('findAllPossibleRoutesWithQuote', () => {
       it('should return all possible routes with quotes', async () => {
         const result = await pancakeswapPairFactory.findAllPossibleRoutesWithQuote(
-          '1'
+          '1', 'getAmountsOut'
         );
         expect(result).not.toBeUndefined();
       });

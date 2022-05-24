@@ -76,14 +76,17 @@ export class PancakeswapPairFactory {
    * Execute the trade path
    * @param amount The amount
    */
-  private async executeTradePath(amount: BigNumber): Promise<TradeContext> {
+  private async executeTradePath(
+    amount: BigNumber,
+    contractMethodName: string
+  ): Promise<TradeContext> {
     switch (this.tradePath()) {
       case TradePath.erc20ToEth:
-        return await this.getTokenTradeAmountErc20ToEth(amount);
+        return await this.getTokenTradeAmountErc20ToEth(amount, contractMethodName);
       case TradePath.ethToErc20:
-        return await this.getTokenTradeAmountEthToErc20(amount);
+        return await this.getTokenTradeAmountEthToErc20(amount, contractMethodName);
       case TradePath.erc20ToErc20:
-        return await this.getTokenTradeAmountErc20ToErc20(amount);
+        return await this.getTokenTradeAmountErc20ToErc20(amount, contractMethodName);
       default:
         throw new PancakeswapError(
           `${this.tradePath()} is not defined`,
@@ -110,14 +113,17 @@ export class PancakeswapPairFactory {
    * if you want it to be executed on the blockchain
    * @amount The amount you want to swap, this is the FROM token amount.
    */
-  public async trade(amount: string): Promise<TradeContext> {
+  public async trade(
+    amount: string,
+    contractMethodName: string
+  ): Promise<TradeContext> {
     this.destroy();
 
     const tradeContext: TradeContext = await this.executeTradePath(
-      new BigNumber(amount)
+      new BigNumber(amount), contractMethodName
     );
 
-    this.watchTradePrice(tradeContext);
+    this.watchTradePrice(tradeContext, contractMethodName);
 
     return tradeContext;
   }
@@ -133,8 +139,11 @@ export class PancakeswapPairFactory {
    * Find the best route rate out of all the route quotes
    * @param amountToTrade The amount to trade
    */
-  public async findBestRoute(amountToTrade: string): Promise<BestRouteQuotes> {
-    return await this._routes.findBestRoute(new BigNumber(amountToTrade));
+  public async findBestRoute(
+    amountToTrade: string,
+    contractMethodName: string
+  ): Promise<BestRouteQuotes> {
+    return await this._routes.findBestRoute(new BigNumber(amountToTrade), contractMethodName);
   }
 
   /**
@@ -142,10 +151,12 @@ export class PancakeswapPairFactory {
    * @param amountToTrade The amount to trade
    */
   public async findAllPossibleRoutesWithQuote(
-    amountToTrade: string
+    amountToTrade: string,
+    contractMethodName: string // getAmountsOut or getAmountsIn
   ): Promise<RouteQuote[]> {
     return await this._routes.getAllPossibleRoutesWithQuotes(
-      new BigNumber(amountToTrade)
+      new BigNumber(amountToTrade),
+      contractMethodName
     );
   }
 
@@ -304,9 +315,10 @@ export class PancakeswapPairFactory {
    * @param amount The amount
    */
   private async getTokenTradeAmountErc20ToEth(
-    amount: BigNumber
+    amount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    return await this.findBestPriceAndPathErc20ToEth(amount);
+    return await this.findBestPriceAndPathErc20ToEth(amount, contractMethodName);
   }
 
   /**
@@ -314,9 +326,10 @@ export class PancakeswapPairFactory {
    * @param ethAmount The eth amount
    */
   private async getTokenTradeAmountEthToErc20(
-    ethAmount: BigNumber
+    ethAmount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    return await this.findBestPriceAndPathEthToErc20(ethAmount);
+    return await this.findBestPriceAndPathEthToErc20(ethAmount, contractMethodName);
   }
 
   /**
@@ -324,9 +337,10 @@ export class PancakeswapPairFactory {
    * @param amount The amount
    */
   private async getTokenTradeAmountErc20ToErc20(
-    amount: BigNumber
+    amount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    return await this.findBestPriceAndPathErc20ToErc20(amount);
+    return await this.findBestPriceAndPathErc20ToErc20(amount, contractMethodName);
   }
 
   /**
@@ -334,9 +348,10 @@ export class PancakeswapPairFactory {
    * @param amount the erc20Token amount being sent
    */
   private async findBestPriceAndPathErc20ToEth(
-    erc20Amount: BigNumber
+    erc20Amount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    const bestRouteQuotes = await this._routes.findBestRoute(erc20Amount);
+    const bestRouteQuotes = await this._routes.findBestRoute(erc20Amount, contractMethodName);
     const bestRouteQuote = bestRouteQuotes.bestRouteQuote;
 
     const convertQuoteWithSlippage = new BigNumber(
@@ -400,9 +415,10 @@ export class PancakeswapPairFactory {
    * @param amount the erc20Token amount being sent
    */
   private async findBestPriceAndPathErc20ToErc20(
-    erc20Amount: BigNumber
+    erc20Amount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    const bestRouteQuotes = await this._routes.findBestRoute(erc20Amount);
+    const bestRouteQuotes = await this._routes.findBestRoute(erc20Amount, contractMethodName);
     const bestRouteQuote = bestRouteQuotes.bestRouteQuote;
 
     const convertQuoteWithSlippage = new BigNumber(
@@ -466,9 +482,10 @@ export class PancakeswapPairFactory {
    * @param ethAmount The eth amount
    */
   private async findBestPriceAndPathEthToErc20(
-    ethAmount: BigNumber
+    ethAmount: BigNumber,
+    contractMethodName: string
   ): Promise<TradeContext> {
-    const bestRouteQuotes = await this._routes.findBestRoute(ethAmount);
+    const bestRouteQuotes = await this._routes.findBestRoute(ethAmount, contractMethodName);
     const bestRouteQuote = bestRouteQuotes.bestRouteQuote;
 
     const convertQuoteWithSlippage = new BigNumber(
@@ -651,11 +668,15 @@ export class PancakeswapPairFactory {
    * Watch trade price move automatically emitting the stream if it changes
    * @param tradeContext The old trade context aka the current one
    */
-  private async watchTradePrice(tradeContext: TradeContext): Promise<void> {
+  private async watchTradePrice(
+    tradeContext: TradeContext,
+    contractMethodName: string
+  ): Promise<void> {
     this._quoteChangeTimeout = setTimeout(async () => {
       if (this._quoteChanged$.observers.length > 0) {
         const trade = await this.executeTradePath(
-          new BigNumber(tradeContext.baseConvertRequest)
+          new BigNumber(tradeContext.baseConvertRequest),
+          contractMethodName
         );
         if (
           !new BigNumber(trade.expectedConvertQuote).eq(
@@ -664,20 +685,20 @@ export class PancakeswapPairFactory {
           trade.routeText !== tradeContext.routeText
         ) {
           this._quoteChanged$.next(trade);
-          this.watchTradePrice(trade);
+          this.watchTradePrice(trade, contractMethodName);
           return;
         }
 
         // it has expired send another one to them
         if (tradeContext.tradeExpires > this.generateTradeDeadlineUnixTime()) {
           this._quoteChanged$.next(trade);
-          this.watchTradePrice(trade);
+          this.watchTradePrice(trade, contractMethodName);
           return;
         }
 
-        this.watchTradePrice(tradeContext);
+        this.watchTradePrice(tradeContext, contractMethodName);
       } else {
-        this.watchTradePrice(tradeContext);
+        this.watchTradePrice(tradeContext, contractMethodName);
       }
       // maybe make config???
       // query new prices every 10 seconds

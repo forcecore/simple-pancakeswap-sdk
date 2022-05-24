@@ -41,7 +41,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('getAllPossibleRoutesWithQuotes', () => {
       it('should get all possible routes with quote', async () => {
         const result = await pancakeswapRouterFactory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(result.length > 0).toEqual(true);
       });
@@ -55,7 +55,7 @@ describe('PancakeswapRouterFactory', () => {
         );
 
         const result = await factory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(result.length === 0).toEqual(true);
       });
@@ -64,7 +64,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('findBestRoute', () => {
       it('should find best route', async () => {
         const result = await pancakeswapRouterFactory.findBestRoute(
-          new BigNumber(100)
+          new BigNumber(100), 'getAmountsOut'
         );
         expect(result.bestRouteQuote.routeText).toEqual('BAT > WBNB > UNI');
       });
@@ -78,7 +78,7 @@ describe('PancakeswapRouterFactory', () => {
         );
 
         await expect(
-          factory.findBestRoute(new BigNumber(100))
+          factory.findBestRoute(new BigNumber(100), 'getAmountsOut')
         ).rejects.toThrowError(
           new PancakeswapError(
             `No routes found for ${fromToken.contractAddress} > ${toToken.contractAddress}`,
@@ -125,7 +125,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('getAllPossibleRoutesWithQuotes', () => {
       it('should get all possible routes with quote', async () => {
         const result = await pancakeswapRouterFactory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(result.length > 0).toEqual(true);
       });
@@ -139,7 +139,7 @@ describe('PancakeswapRouterFactory', () => {
         );
 
         const result = await factory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(
           result.filter((c) => c.routePathArray.length > 2).length > 0
@@ -150,7 +150,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('findBestRoute', () => {
       it('should find best route', async () => {
         const result = await pancakeswapRouterFactory.findBestRoute(
-          new BigNumber(100)
+          new BigNumber(100), 'getAmountsOut'
         );
         expect(result.bestRouteQuote.routeText).toEqual('BAT > WBNB');
       });
@@ -163,7 +163,7 @@ describe('PancakeswapRouterFactory', () => {
           ethersProvider
         );
 
-        const result = await factory.findBestRoute(new BigNumber(100));
+        const result = await factory.findBestRoute(new BigNumber(100), 'getAmountsOut');
 
         expect(result.bestRouteQuote.routeText).toEqual('BAT > WBNB');
         expect(
@@ -210,7 +210,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('getAllPossibleRoutesWithQuotes', () => {
       it('should get all possible routes with quote', async () => {
         const result = await pancakeswapRouterFactory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(result.length > 0).toEqual(true);
       });
@@ -224,7 +224,7 @@ describe('PancakeswapRouterFactory', () => {
         );
 
         const result = await factory.getAllPossibleRoutesWithQuotes(
-          new BigNumber(1)
+          new BigNumber(1), 'getAmountsOut'
         );
         expect(
           result.filter((c) => c.routePathArray.length > 2).length > 0
@@ -235,7 +235,7 @@ describe('PancakeswapRouterFactory', () => {
     describe('findBestRoute', () => {
       it('should find best route', async () => {
         const result = await pancakeswapRouterFactory.findBestRoute(
-          new BigNumber(100)
+          new BigNumber(100), 'getAmountsOut'
         );
         expect(result.bestRouteQuote.routeText).toEqual('WBNB > BAT');
       });
@@ -248,7 +248,7 @@ describe('PancakeswapRouterFactory', () => {
           ethersProvider
         );
 
-        const result = await factory.findBestRoute(new BigNumber(100));
+        const result = await factory.findBestRoute(new BigNumber(100), 'getAmountsOut');
 
         expect(result.bestRouteQuote.routeText).toEqual('WBNB > BAT');
         expect(
